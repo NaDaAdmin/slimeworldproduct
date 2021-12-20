@@ -94,6 +94,18 @@ class HashgraphClient extends HashgraphClientContract {
 		return { balance: parseFloat(balance.hbars.toString()) }
 	}
 
+	async userAccountBalanceQuery({ accound_id, token_id }) {
+		const client = this.#client
+
+		const balance = await new AccountBalanceQuery()
+			.setAccountId(accound_id)
+			.execute(client)
+
+		//const tokenInfo = balance.tokens._map.get([token_id].toString());
+
+		return { balance: parseFloat(balance.tokens._map.get([token_id].toString()).toString()) }
+	}
+		
 	async sendConsensusMessage({
 		reference,
 		allow_synchronous_consensus,
@@ -183,6 +195,7 @@ class HashgraphClient extends HashgraphClientContract {
 			accountId: receiver_id
 		})
 
+
 		const { tokens } = await new AccountBalanceQuery()
 			.setAccountId(Config.accountId)
 			.execute(client)
@@ -194,15 +207,84 @@ class HashgraphClient extends HashgraphClientContract {
 			return false
 		}
 
-		await new TransferTransaction()
+		const signature = await new TransferTransaction()
 			.addTokenTransfer(token_id, Config.accountId, -adjustedAmountBySpec)
 			.addTokenTransfer(token_id, receiver_id, adjustedAmountBySpec)
 			.execute(client)
 
-		return {
-			amount,
-			receiver_id
+		const receipt = await signature.getReceipt(client);
+
+		const balance = await new AccountBalanceQuery()
+			.setAccountId(receiver_id)
+			.execute(client)
+
+		const recverbalance = balance.tokens._map.get([token_id].toString()).toString();
+
+
+		if (receipt.status.toString() === "SUCCESS") {
+			return { balance: parseFloat(recverbalance) }
 		}
+		else {
+			return false;
+		}
+	}
+
+	recvToken = async ({
+		specification = Specification.Fungible,
+		encrypted_receiver_key,
+		token_id,
+		sender_id,
+		amount
+	}) => {
+
+		const client = this.#client
+
+		// Extract PV from encrypted
+		const privateKey = await Encryption.decrypt(encrypted_receiver_key)
+
+		const { tokens } = await new AccountBalanceQuery()
+			.setAccountId(sender_id)
+			.execute(client)
+
+		const token = JSON.parse(tokens.toString())[token_id]
+		const adjustedAmountBySpec = amount * 10 ** specification.decimals
+
+		if (token < adjustedAmountBySpec) {
+
+			return false
+		}
+
+		let transaction = await new TransferTransaction()
+			.addTokenTransfer(token_id, sender_id, -(adjustedAmountBySpec))
+			.addTokenTransfer(token_id, Config.accountId, adjustedAmountBySpec)
+			.freezeWith(client);
+
+
+		//Sign with the sender account private key
+		const signTx = await transaction.sign(PrivateKey.fromString(privateKey));
+
+		//Sign with the client operator private key and submit to a Hedera network
+		const txResponse = await signTx.execute(client);
+
+		//Request the receipt of the transaction
+		const receipt = await txResponse.getReceipt(client);
+
+		//Obtain the transaction consensus status
+		const transactionStatus = receipt.status;
+
+		const balance = await new AccountBalanceQuery()
+			.setAccountId(sender_id)
+			.execute(client)
+
+		const senderbalance = balance.tokens._map.get([token_id].toString()).toString();
+
+
+		if (transactionStatus.toString() === "SUCCESS") {
+			return { balance: parseFloat(senderbalance) }
+		}
+		else {
+			return false;
+        }
 	}
 
 	createAccount = async () => {
