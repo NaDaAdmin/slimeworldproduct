@@ -222,14 +222,19 @@ class HashgraphClient extends HashgraphClientContract {
 			.addTokenTransfer(token_id, receiver_id, adjustedAmountBySpec)
 			.execute(client)
 
+		console.log("TransferTransaction");
+
 		const receipt = await signature.getReceipt(client);
 
 		const balance = await new AccountBalanceQuery()
 			.setAccountId(receiver_id)
 			.execute(client)
 
+		console.log("AccountBalanceQuery");
+
 		const recverbalance = balance.tokens._map.get([token_id].toString()).toString();
 
+		console.log("Result" + parseFloat(recverbalance) );
 
 		if (receipt.status.toString() === "SUCCESS") {
 			return { balance: parseFloat(recverbalance) }

@@ -3,7 +3,7 @@
  */
 
 // Maximum expected time for consensus finality.
-const DEFAULT_MS = 10000
+const DEFAULT_MS = 30000
 
 function sleep(ms = DEFAULT_MS) {
 	return new Promise(resolve => setTimeout(resolve, ms))
