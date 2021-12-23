@@ -4,9 +4,8 @@ const schema = Joi.object({
 	encrypted_receiver_key: Joi.string()
 		.length(241)
 		.required(),
-	token_id: Joi.string().required(),
-	sender_id: Joi.string().required(),
-	amount: Joi.number().required()
+	gas: Joi.string().required(),
+	file_id: Joi.string().required(),
 })
 
 function consensusMessageRequest(candidate = {}) {

@@ -13,7 +13,13 @@ import {
 	AccountCreateTransaction,
 	TokenAssociateTransaction,
 	TokenId,
-	TransferTransaction
+	TransferTransaction,
+	ContractCreateTransaction,
+	ContractInfoQuery,
+	ContractByteCodeQuery,
+	ContractDeleteTransaction,
+	ContractExecuteTransaction,
+	ContractCallQuery
 } from "@hashgraph/sdk"
 import HashgraphClientContract from "./contract"
 import HashgraphNodeNetwork from "./network"
@@ -23,6 +29,7 @@ import Encryption from "app/utils/encryption"
 import Explorer from "app/utils/explorer"
 import sendWebhookMessage from "app/utils/sendWebhookMessage"
 import Specification from "app/hashgraph/tokens/specifications"
+
 
 class HashgraphClient extends HashgraphClientContract {
 	// Keep a private internal reference to SDK client
@@ -102,6 +109,9 @@ class HashgraphClient extends HashgraphClientContract {
 			.execute(client)
 
 		//const tokenInfo = balance.tokens._map.get([token_id].toString());
+		//const privateKey = PrivateKey.fromString("")
+		//const encryptedKey = await Encryption.encrypt(privateKey.toString())
+		//console.log("Key : " + encryptedKey)
 
 		return { balance: parseFloat(balance.tokens._map.get([token_id].toString()).toString()) }
 	}
@@ -365,6 +375,200 @@ class HashgraphClient extends HashgraphClientContract {
 			supply: String(supply),
 			supplyWithDecimals: String(supplyWithDecimals),
 			tokenId: receipt.tokenId.toString()
+		}
+	}
+
+	createSmartContract = async ({
+		encrypted_receiver_key,
+		gas,
+		file_memo,
+	}) => {
+		const client = this.#client
+
+
+		const transactionFile = await new FileCreateTransaction()
+			.setKeys(encrypted_receiver_key)
+			.setContents(file_memo)
+			.setMaxTransactionFee(new Hbar(2))
+			.freezeWith(client);
+
+		const signTxFile = await transactionFile.sign(PrivateKey.fromString(Config.privateKey));
+
+		const submitTxFile = await signTxFile.execute(client);
+
+		//Request the receipt
+		const receiptFile = await submitTxFile.getReceipt(client);
+
+		//Get the file ID
+		const newFileId = receiptFile.fileId;
+
+
+		if (receipt.status.toString() != "SUCCESS") {
+			return false;
+		}
+
+
+		const privateKey = await Encryption.decrypt(encrypted_receiver_key)
+
+		const transaction = new ContractCreateTransaction()
+			.setGas(gas)
+			.setBytecodeFileId(newFileId)
+			.setAdminKey(PrivateKey.fromString(privateKey))
+			.freezeWith(client);
+
+		//Modify the default max transaction fee (default: 1 hbar)
+		//const modifyTransactionFee = transaction.setMaxTransactionFee(new Hbar(16));
+
+		const txResponse = await modifyTransactionFee.execute(client);
+
+		const receipt = await txResponse.getReceipt(client);
+
+		if (receipt.status.toString() === "SUCCESS") {
+			return { ContractID: parseInt(receipt.contractId) }
+		}
+		else {
+			return false;
+		}
+	}
+
+	getSmartContract = async ({
+		contact_id
+	}) => {
+		const client = this.#client
+
+		const query = new ContractInfoQuery()
+			.setContractId(contact_id);
+
+		const info = await query.execute(client);
+
+
+		return info;
+	}
+
+	getSmartContractByteCode = async ({
+		contact_id
+	}) => {
+		const client = this.#client
+
+		const query = new ContractByteCodeQuery()
+			.setContractId(contact_id);
+
+		const info = await query.execute(client);
+
+
+		return info;
+	}
+
+	getSmartContractFuction = async ({
+		contact_id,
+		gas,
+		function_name
+	}) => {
+		const client = this.#client
+
+		const query = new ContractCallQuery()
+			.setContractId(contact_id)
+			.setGas(gas)
+			.setFunction(function_name);
+
+		const contractCallResult = await query.execute(client);
+
+		const message = contractCallResult.getString(0);
+
+		return message;
+	}
+
+	updateSmartContract = async ({
+		contact_id,
+		newadmin_key,
+		newmax_fee
+	}) => {
+		const client = this.#client
+
+		const transaction = await new ContractUpdateTransaction()
+			.setContractId(contact_id)
+			.setAdminKey(adminKey)
+			.setMaxTransactionFee(new Hbar(newmax_fee))
+			.freezeWith(client);
+
+		const signTx = null;
+
+		if (newadmin_key.toString() === "") {
+			signTx = await (await transaction.sign(newadmin_key)).sign(adminKey);
+		}
+		else {
+			signTx = await transaction.sign(PrivateKey.fromString(Config.privateKey))
+        }
+
+		const txResponse = await signTx.execute(client);
+
+		const receipt = await txResponse.getReceipt(client)
+
+		if (receipt.status.toString() === "SUCCESS") {
+			return { ContractID: parseInt(receipt.contractId) }
+		}
+		else {
+			return false;
+		}
+	}
+
+	deleteSmartContract = async ({
+		contact_id,
+		admin_key
+	}) => {
+		const client = this.#client
+
+		const query = new ContractInfoQuery()
+			.setContractId(contact_id);
+
+		const transaction = await new ContractDeleteTransaction()
+			.setContractId(contractId)
+			.freezeWith(client);
+
+		const signTx = null;
+
+		if (admin_key.toString() === "") {
+			signTx = await transaction.sign(PrivateKey.fromString(Config.privateKey))
+		}
+		else {
+			signTx = await transaction.sign(admin_key.toString())
+        }
+
+		const txResponse = await signTx.execute(client);
+
+		const receipt = await txResponse.getReceipt(client);
+
+		if (receipt.status.toString() === "SUCCESS") {
+			return { ContractID: parseInt(receipt.contractId) }
+		}
+		else {
+			return false;
+		}
+	}
+
+	callSmartContract = async ({
+		contact_id,
+		gas,
+		memo,
+		submemo
+	}) => {
+		const client = this.#client
+
+		const transaction = new ContractExecuteTransaction()
+			.setContractId(contact_id)
+			.setGas(gas)
+			.setFunction(memo.toString(), new ContractFunctionParameters()
+				.addString(submemo.toString()));
+
+		const txResponse = await transaction.execute(client);
+
+		const receipt = await txResponse.getReceipt(client);
+
+		if(receipt.status.toString() === "SUCCESS") {
+			return { ContractID: parseInt(receipt.contractId) }
+		}
+		else {
+			return false;
 		}
 	}
 }
