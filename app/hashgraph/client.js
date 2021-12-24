@@ -288,15 +288,19 @@ class HashgraphClient extends HashgraphClientContract {
 			.freezeWith(client);
 
 
+		console.log("===========4")
 		//Sign with the sender account private key
 		const signTx = await transaction.sign(PrivateKey.fromString(Config.privateKey));
 
+		console.log("===========4.5")
 		//Sign with the client operator private key and submit to a Hedera network
 		const txResponse = await signTx.execute(client);
 
+		console.log("===========4.8")
 		//Request the receipt of the transaction
 		const receipt = await txResponse.getReceipt(client);
 
+		console.log("===========4.9")
 		//Obtain the transaction consensus status
 		const transactionStatus = receipt.status;
 
