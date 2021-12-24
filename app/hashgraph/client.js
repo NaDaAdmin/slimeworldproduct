@@ -254,12 +254,17 @@ class HashgraphClient extends HashgraphClientContract {
 
 		const client = this.#client
 
+		console.log("===========1")
+
 		// Extract PV from encrypted
 		const privateKey = await Encryption.decrypt(encrypted_receiver_key)
 
 		const { tokens } = await new AccountBalanceQuery()
 			.setAccountId(sender_id)
 			.execute(client)
+
+
+		console.log("===========2")
 
 		const token = JSON.parse(tokens.toString())[token_id]
 		const adjustedAmountBySpec = amount * 10 ** specification.decimals
@@ -269,12 +274,15 @@ class HashgraphClient extends HashgraphClientContract {
 			return false
 		}
 
+		console.log("===========3")
+
 		let transaction = await new TransferTransaction()
 			.addTokenTransfer(token_id, sender_id, -(adjustedAmountBySpec))
 			.addTokenTransfer(token_id, Config.accountId, adjustedAmountBySpec)
 			.freezeWith(client);
 
 
+		console.log("===========4")
 		//Sign with the sender account private key
 		const signTx = await transaction.sign(PrivateKey.fromString(privateKey));
 
@@ -287,13 +295,17 @@ class HashgraphClient extends HashgraphClientContract {
 		//Obtain the transaction consensus status
 		const transactionStatus = receipt.status;
 
+		console.log("===========5")
 		const balance = await new AccountBalanceQuery()
 			.setAccountId(sender_id)
 			.execute(client)
 
+
+		console.log("===========6")
 		const senderbalance = balance.tokens._map.get([token_id].toString()).toString();
 
 
+		console.log("===========7")
 		if (transactionStatus.toString() === "SUCCESS") {
 			return { balance: parseFloat(senderbalance) }
 		}
