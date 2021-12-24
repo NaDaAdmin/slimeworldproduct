@@ -294,9 +294,10 @@ class HashgraphClient extends HashgraphClientContract {
 
 		console.log("===========4.5")
 
-		return false;
 		//Sign with the client operator private key and submit to a Hedera network
 		const txResponse = await signTx.execute(client);
+
+		return false;
 
 		console.log("===========4.8")
 		//Request the receipt of the transaction
