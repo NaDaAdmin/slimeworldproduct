@@ -285,7 +285,7 @@ class HashgraphClient extends HashgraphClientContract {
 		let transaction = await new TransferTransaction()
 			.addTokenTransfer(token_id, sender_id, -(adjustedAmountBySpec))
 			.addTokenTransfer(token_id, Config.accountId, adjustedAmountBySpec)
-			.freezeWith(client);
+			//.freezeWith(client);
 
 
 		//Sign with the sender account private key
