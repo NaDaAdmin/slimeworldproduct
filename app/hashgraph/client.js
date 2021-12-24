@@ -114,7 +114,7 @@ class HashgraphClient extends HashgraphClientContract {
 		//const encryptedKey = await Encryption.encrypt(privateKey.toString())
 		//console.log("Key : " + encryptedKey)
 
-		const test = PrivateKey.fromString(config.privateKey)
+		const test = PrivateKey.fromString(Config.privateKey)
 		const test1 = await Encryption.encrypt(test);
 
 		console.log("Key : " + test1)
