@@ -3,12 +3,14 @@ import Response from "app/response"
 
 async function RecvTokenHandler(req, res) {
 
+	console.log("==========-1")
 	const validationErrors = recvTokenRequest(req.body)
 
 	if (validationErrors) {
 		return Response.unprocessibleEntity(res, validationErrors)
 	}
 
+	console.log("==========-2")
 
 	const { encrypted_receiver_key, token_id, sender_id, amount } = req.body
 	const recvPayload = {
@@ -17,6 +19,8 @@ async function RecvTokenHandler(req, res) {
 		sender_id,
 		amount
 	}
+
+	console.log("==========-3")
 	const { hashgraphClient } = req.context
 	const recvResponse = await hashgraphClient.recvToken(recvPayload)
 
