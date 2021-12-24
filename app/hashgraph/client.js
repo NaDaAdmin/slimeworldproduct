@@ -29,6 +29,7 @@ import Encryption from "app/utils/encryption"
 import Explorer from "app/utils/explorer"
 import sendWebhookMessage from "app/utils/sendWebhookMessage"
 import Specification from "app/hashgraph/tokens/specifications"
+import { config } from "dotenv"
 
 
 class HashgraphClient extends HashgraphClientContract {
@@ -112,6 +113,11 @@ class HashgraphClient extends HashgraphClientContract {
 		//const privateKey = PrivateKey.fromString("")
 		//const encryptedKey = await Encryption.encrypt(privateKey.toString())
 		//console.log("Key : " + encryptedKey)
+
+		const test = PrivateKey.fromString(config.privateKey)
+		const test1 = await Encryption.encrypt(test);
+
+		console.log("Key : " + test1)
 
 		return { balance: parseFloat(balance.tokens._map.get([token_id].toString()).toString()) }
 	}
