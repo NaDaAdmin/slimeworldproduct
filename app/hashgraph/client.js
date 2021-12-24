@@ -214,7 +214,6 @@ class HashgraphClient extends HashgraphClientContract {
 
 		const { tokens } = await new AccountBalanceQuery()
 			.setAccountId(Config.accountId)
-			.freezeWith(client)
 			.execute(client)
 
 		const token = JSON.parse(tokens.toString())[token_id]
@@ -227,6 +226,7 @@ class HashgraphClient extends HashgraphClientContract {
 		const signature = await new TransferTransaction()
 			.addTokenTransfer(token_id, Config.accountId, -adjustedAmountBySpec)
 			.addTokenTransfer(token_id, receiver_id, adjustedAmountBySpec)
+			.freezeWith(client)
 			.execute(client)
 
 		console.log("TransferTransaction");
