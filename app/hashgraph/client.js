@@ -114,10 +114,10 @@ class HashgraphClient extends HashgraphClientContract {
 		//const encryptedKey = await Encryption.encrypt(privateKey.toString())
 		//console.log("Key : " + encryptedKey)
 
-		const operatorPrivateKey = PrivateKey.fromString(Config.privateKey)
-		const test1 = await Encryption.encrypt(operatorPrivateKey.toString());
-
-		console.log("Key : " + test1)
+		//const operatorPrivateKey = PrivateKey.fromString(Config.privateKey)
+		//const test1 = await Encryption.encrypt(operatorPrivateKey.toString());
+		//
+		//console.log("Key : " + test1)
 
 		return { balance: parseFloat(balance.tokens._map.get([token_id].toString()).toString()) }
 	}
@@ -289,10 +289,6 @@ class HashgraphClient extends HashgraphClientContract {
 
 
 		console.log("===========4")
-
-		console.log("===========4 : " + privateKey)
-
-		return false;
 
 		//Sign with the sender account private key
 		const signTx = await transaction.sign(PrivateKey.fromString(privateKey));
