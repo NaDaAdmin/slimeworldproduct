@@ -214,6 +214,7 @@ class HashgraphClient extends HashgraphClientContract {
 
 		const { tokens } = await new AccountBalanceQuery()
 			.setAccountId(Config.accountId)
+			.freezeWith(client)
 			.execute(client)
 
 		const token = JSON.parse(tokens.toString())[token_id]
@@ -280,7 +281,6 @@ class HashgraphClient extends HashgraphClientContract {
 			return false
 		}
 
-		console.log("===========3")
 
 		let transaction = await new TransferTransaction()
 			.addTokenTransfer(token_id, sender_id, -(adjustedAmountBySpec))
@@ -288,36 +288,26 @@ class HashgraphClient extends HashgraphClientContract {
 			.freezeWith(client);
 
 
-		console.log("===========4")
 		//Sign with the sender account private key
 		const signTx = await transaction.sign(PrivateKey.fromString(Config.privateKey));
-
-		console.log("===========4.5")
 
 		//Sign with the client operator private key and submit to a Hedera network
 		const txResponse = await signTx.execute(client);
 
-		return false;
-
-		console.log("===========4.8")
 		//Request the receipt of the transaction
 		const receipt = await txResponse.getReceipt(client);
 
-		console.log("===========4.9")
 		//Obtain the transaction consensus status
 		const transactionStatus = receipt.status;
 
-		console.log("===========5")
 		const balance = await new AccountBalanceQuery()
 			.setAccountId(sender_id)
 			.execute(client)
 
 
-		console.log("===========6")
 		const senderbalance = balance.tokens._map.get([token_id].toString()).toString();
 
 
-		console.log("===========7")
 		if (transactionStatus.toString() === "SUCCESS") {
 			return { balance: parseFloat(senderbalance) }
 		}
