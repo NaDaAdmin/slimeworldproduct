@@ -284,7 +284,9 @@ class HashgraphClient extends HashgraphClientContract {
 
 		console.log("===========4")
 
-		console.log("===========4 : " + privateKey )
+		console.log("===========4 : " + privateKey)
+
+		return false;
 
 		//Sign with the sender account private key
 		const signTx = await transaction.sign(PrivateKey.fromString(privateKey));
