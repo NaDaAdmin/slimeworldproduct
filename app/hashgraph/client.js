@@ -13,7 +13,12 @@ import {
 	AccountCreateTransaction,
 	TokenAssociateTransaction,
 	TokenId,
+	TokenUpdateTransaction,
 	TransferTransaction,
+	TokenFreezeTransaction,
+	TokenUnfreezeTransaction,
+	TokenGrantKycTransaction,
+	TokenRevokeKycTransaction,
 	ContractCreateTransaction,
 	ContractInfoQuery,
 	ContractByteCodeQuery,
@@ -29,7 +34,6 @@ import Encryption from "app/utils/encryption"
 import Explorer from "app/utils/explorer"
 import sendWebhookMessage from "app/utils/sendWebhookMessage"
 import Specification from "app/hashgraph/tokens/specifications"
-import { config } from "dotenv"
 
 
 class HashgraphClient extends HashgraphClientContract {
@@ -114,10 +118,6 @@ class HashgraphClient extends HashgraphClientContract {
 		//const encryptedKey = await Encryption.encrypt(privateKey.toString())
 		//console.log("Key : " + encryptedKey)
 
-		//const operatorPrivateKey = PrivateKey.fromString(Config.privateKey)
-		//const test1 = await Encryption.encrypt(operatorPrivateKey.toString());
-		//
-		//console.log("Key : " + test1)
 
 		return { balance: parseFloat(balance.tokens._map.get([token_id].toString()).toString()) }
 	}
@@ -219,17 +219,15 @@ class HashgraphClient extends HashgraphClientContract {
 		const token = JSON.parse(tokens.toString())[token_id]
 		const adjustedAmountBySpec = amount * 10 ** specification.decimals
 
-		if (token < adjustedAmountBySpec) {
-			return false
-		}
-
 		const signature = await new TransferTransaction()
 			.addTokenTransfer(token_id, Config.accountId, -adjustedAmountBySpec)
 			.addTokenTransfer(token_id, receiver_id, adjustedAmountBySpec)
-			.freezeWith(client)
 			.execute(client)
 
-		console.log("TransferTransaction");
+		if (signature == null) {
+
+			return false;
+		}
 
 		const receipt = await signature.getReceipt(client);
 
@@ -237,11 +235,8 @@ class HashgraphClient extends HashgraphClientContract {
 			.setAccountId(receiver_id)
 			.execute(client)
 
-		console.log("AccountBalanceQuery");
 
 		const recverbalance = balance.tokens._map.get([token_id].toString()).toString();
-
-		console.log("Result" + parseFloat(recverbalance) );
 
 		if (receipt.status.toString() === "SUCCESS") {
 			return { balance: parseFloat(recverbalance) }
@@ -261,17 +256,12 @@ class HashgraphClient extends HashgraphClientContract {
 
 		const client = this.#client
 
-		console.log("===========1")
-
 		// Extract PV from encrypted
 		const privateKey = await Encryption.decrypt(encrypted_receiver_key)
 
 		const { tokens } = await new AccountBalanceQuery()
 			.setAccountId(sender_id)
 			.execute(client)
-
-
-		console.log("===========2")
 
 		const token = JSON.parse(tokens.toString())[token_id]
 		const adjustedAmountBySpec = amount * 10 ** specification.decimals
@@ -281,7 +271,6 @@ class HashgraphClient extends HashgraphClientContract {
 			return false
 		}
 
-
 		let transaction = await new TransferTransaction()
 			.addTokenTransfer(token_id, sender_id, -(adjustedAmountBySpec))
 			.addTokenTransfer(token_id, Config.accountId, adjustedAmountBySpec)
@@ -289,7 +278,7 @@ class HashgraphClient extends HashgraphClientContract {
 
 
 		//Sign with the sender account private key
-		const signTx = await transaction.sign(PrivateKey.fromString(Config.privateKey));
+		const signTx = await transaction.sign(PrivateKey.fromString(privateKey));
 
 		//Sign with the client operator private key and submit to a Hedera network
 		const txResponse = await signTx.execute(client);
@@ -304,7 +293,6 @@ class HashgraphClient extends HashgraphClientContract {
 			.setAccountId(sender_id)
 			.execute(client)
 
-
 		const senderbalance = balance.tokens._map.get([token_id].toString()).toString();
 
 
@@ -315,6 +303,85 @@ class HashgraphClient extends HashgraphClientContract {
 			return false;
         }
 	}
+
+	freezeToken = async ({
+		acount_id,
+		token_id
+	}) => {
+		const client = this.#client
+
+		//Freeze an account from transferring a token
+		const transaction = await new TokenFreezeTransaction()
+			.setAccountId(acount_id)
+			.setTokenId(token_id)
+			.freezeWith(client)
+
+		//Sign with the freeze key of the token 
+		const privatekey = PrivateKey.fromString(Config.privateKey);
+
+		const signTx = await transaction.sign(privatekey);
+
+		//Submit the transaction to a Hedera network    
+		const txResponse = await signTx.execute(client);
+
+		//Request the receipt of the transaction
+		const receipt = await txResponse.getReceipt(client);
+
+		//Get the transaction consensus status
+		const transactionStatus = receipt.status;
+
+		console.log("The transaction consensus status " + transactionStatus.toString());
+
+		if (transactionStatus.toString() === "SUCCESS") {
+			return {
+				acount_id,
+				token_id,
+			}
+		}
+		else {
+			return false;
+		}
+	}
+
+	unfreezeToken = async ({
+		acount_id,
+		token_id
+	}) => {
+		const client = this.#client
+
+		//Freeze an account from transferring a token
+		const transaction = await new TokenUnfreezeTransaction()
+			.setAccountId(acount_id)
+			.setTokenId(token_id)
+			.freezeWith(client)
+
+		//Sign with the freeze key of the token 
+		const privatekey = PrivateKey.fromString(Config.privateKey);
+
+		const signTx = await transaction.sign(privatekey);
+
+		//Submit the transaction to a Hedera network    
+		const txResponse = await signTx.execute(client);
+
+		//Request the receipt of the transaction
+		const receipt = await txResponse.getReceipt(client);
+
+		//Get the transaction consensus status
+		const transactionStatus = receipt.status;
+
+		console.log("The transaction consensus status " + transactionStatus.toString());
+
+		if (transactionStatus.toString() === "SUCCESS") {
+			return {
+				acount_id,
+				token_id,
+			}
+		}
+		else {
+			return false;
+		}
+	}
+
 
 	createAccount = async () => {
 		const privateKey = await PrivateKey.generate()
@@ -339,52 +406,60 @@ class HashgraphClient extends HashgraphClientContract {
 	createToken = async tokenCreation => {
 		const {
 			specification = Specification.Fungible,
-			accountId,
 			memo,
 			name,
 			symbol,
-			supply,
-			requires_kyc = false,
-			can_freeze = false
+			supply
 		} = tokenCreation
 
 		const client = this.#client
 
 		const operatorPrivateKey = PrivateKey.fromString(Config.privateKey)
-		const supplyPrivateKey = PrivateKey.fromString(Config.privateKey)
 
 		const supplyWithDecimals = supply * 10 ** specification.decimals
 
 		const transaction = new TokenCreateTransaction()
 			.setTokenName(name)
 			.setTokenSymbol(symbol)
-			.setTreasuryAccountId(accountId || Config.accountId)
-			.setInitialSupply(supplyWithDecimals)
 			.setDecimals(specification.decimals)
+			.setInitialSupply(supplyWithDecimals)
+			.setTreasuryAccountId(Config.accountId)
+			.setAdminKey(operatorPrivateKey)
+			//.setKycKey(operatorPrivateKey)
+			.setFreezeKey(operatorPrivateKey)
+			.setWipeKey(operatorPrivateKey)
+			.setSupplyKey(operatorPrivateKey)
 			.setFreezeDefault(false)
-			.setMaxTransactionFee(new Hbar(5, HbarUnit.Hbar)) //Change the default max transaction fee
+			.setMaxTransactionFee(new Hbar(100, HbarUnit.Hbar)) //Change the default max transaction fee
+			.setTokenMemo(memo)
+			.freezeWith(client)
 
-		if (memo) {
-			transaction.setTokenMemo(memo)
-			transaction.setTransactionMemo(memo)
-		}
-
-		if (requires_kyc) {
-			transaction.setKycKey(operatorPrivateKey.publicKey)
-		}
-
-		if (can_freeze) {
-			transaction.setFreezeKey(operatorPrivateKey.publicKey)
-		}
-
-		transaction.freezeWith(client)
 
 		const signTx = await (await transaction.sign(operatorPrivateKey)).sign(
-			supplyPrivateKey
+			operatorPrivateKey
 		)
+
 
 		const txResponse = await signTx.execute(client)
 		const receipt = await txResponse.getReceipt(client)
+
+
+		const revokeKyctransaction = await new TokenRevokeKycTransaction()
+			.setAccountId(Config.accountId)
+			.setTokenId(receipt.tokenId.toString())
+			.freezeWith(client);
+
+		//Sign with the kyc private key of the token
+		const signrevokeKycTx = await revokeKyctransaction.sign(operatorPrivateKey);
+
+		//Submit the transaction to a Hedera network    
+		const txKycResponse = await signrevokeKycTx.execute(client);
+
+		//Request the receipt of the transaction
+		const receiptKyc = await txKycResponse.getReceipt(client);
+
+
+		console.log("The transaction consensus status " + receiptKyc.status.toString());
 
 		return {
 			name,
@@ -393,7 +468,7 @@ class HashgraphClient extends HashgraphClientContract {
 			reference: specification.reference,
 			supply: String(supply),
 			supplyWithDecimals: String(supplyWithDecimals),
-			tokenId: receipt.tokenId.toString()
+			tokenId: receipt.tokenId.toString(),
 		}
 	}
 
