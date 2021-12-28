@@ -480,6 +480,8 @@ class HashgraphClient extends HashgraphClientContract {
 		const txResponse = await signTx.execute(client)
 		const receipt = await txResponse.getReceipt(client)
 
+		const encryptedKey = await Encryption.encrypt(operatorPrivateKey.toString())
+
 		return {
 			name,
 			symbol,
@@ -488,6 +490,7 @@ class HashgraphClient extends HashgraphClientContract {
 			supply: String(supply),
 			supplyWithDecimals: String(supplyWithDecimals),
 			tokenId: receipt.tokenId.toString(),
+			encryptedKey
 		}
 	}
 
