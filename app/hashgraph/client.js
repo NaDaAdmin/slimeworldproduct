@@ -210,12 +210,17 @@ class HashgraphClient extends HashgraphClientContract {
 			.addTokenTransfer(token_id, receiver_id, adjustedAmountBySpec)
 			.execute(client)
 
+		console.log("-----------0>" + signature.transactionId);
+
 		if (signature == null) {
 
 			return false;
 		}
 
 		const receipt = await signature.getReceipt(client);
+
+		console.log("-----------1>" + receipt.status.toString() );
+
 
 		const balance = await new AccountBalanceQuery()
 			.setAccountId(receiver_id)
@@ -376,24 +381,24 @@ class HashgraphClient extends HashgraphClientContract {
 	}) => {
 		const client = this.#client
 
-		const privateKey = await Encryption.decrypt(encrypted_receiver_key)
-		//Sign with the freeze key of the token
-
-		// -계정에 토큰 연관성 설정
-		const transaction = await new TokenAssociateTransaction()
-			.setAccountId(acount_id)
-			.setTokenIds([token_id])
-			.freezeWith(client);
-
-		//Sign with the private key of the account that is being associated to a token 
-		const signTx = await transaction.sign(PrivateKey.fromString(privateKey));
-		const response = signTx.execute(client);
-
-		//KYC 부여
-		const revokeKyctransaction = await new TokenGrantKycTransaction()
-			.setAccountId(acount_id)
-			.setTokenId(token_id)
-			.freezeWith(client);
+		//const privateKey = await Encryption.decrypt(encrypted_receiver_key)
+		////Sign with the freeze key of the token
+		//
+		//// -계정에 토큰 연관성 설정
+		//const transaction = await new TokenAssociateTransaction()
+		//	.setAccountId(acount_id)
+		//	.setTokenIds([token_id])
+		//	.freezeWith(client);
+		//
+		////Sign with the private key of the account that is being associated to a token 
+		//const signTx = await transaction.sign(PrivateKey.fromString(privateKey));
+		//const response = signTx.execute(client);
+		//
+		////KYC 부여
+		//const revokeKyctransaction = await new TokenGrantKycTransaction()
+		//	.setAccountId(acount_id)
+		//	.setTokenId(token_id)
+		//	.freezeWith(client);
 			
 			
 		//Sign with the kyc private key of the token
