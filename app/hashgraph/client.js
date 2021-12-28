@@ -394,11 +394,11 @@ class HashgraphClient extends HashgraphClientContract {
 		//const signTx = await transaction.sign(PrivateKey.fromString(privateKey));
 		//const response = signTx.execute(client);
 		//
-		////KYC 부여
-		//const revokeKyctransaction = await new TokenGrantKycTransaction()
-		//	.setAccountId(acount_id)
-		//	.setTokenId(token_id)
-		//	.freezeWith(client);
+		//KYC 부여
+		const revokeKyctransaction = await new TokenGrantKycTransaction()
+			.setAccountId(acount_id)
+			.setTokenId(token_id)
+			.freezeWith(client);
 			
 			
 		//Sign with the kyc private key of the token
