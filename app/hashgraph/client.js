@@ -113,6 +113,8 @@ class HashgraphClient extends HashgraphClientContract {
 			.setAccountId(accound_id)
 			.execute(client)
 
+
+
 		//const tokenInfo = balance.tokens._map.get([token_id].toString());
 		//const privateKey = PrivateKey.fromString("")
 		//const encryptedKey = await Encryption.encrypt(privateKey.toString())
@@ -201,22 +203,6 @@ class HashgraphClient extends HashgraphClientContract {
 	}) => {
 		const client = this.#client
 
-		// Extract PV from encrypted
-		const privateKey = await Encryption.decrypt(encrypted_receiver_key)
-
-		// Associate with the token
-		await this.associateToAccount({
-			privateKey,
-			tokenIds: [token_id],
-			accountId: receiver_id
-		})
-
-
-		const { tokens } = await new AccountBalanceQuery()
-			.setAccountId(Config.accountId)
-			.execute(client)
-
-		const token = JSON.parse(tokens.toString())[token_id]
 		const adjustedAmountBySpec = amount * 10 ** specification.decimals
 
 		const signature = await new TransferTransaction()
@@ -316,7 +302,7 @@ class HashgraphClient extends HashgraphClientContract {
 			.setTokenId(token_id)
 			.freezeWith(client)
 
-		//Sign with the freeze key of the token 
+
 		const privatekey = PrivateKey.fromString(Config.privateKey);
 
 		const signTx = await transaction.sign(privatekey);
@@ -342,6 +328,7 @@ class HashgraphClient extends HashgraphClientContract {
 			return false;
 		}
 	}
+
 
 	unfreezeToken = async ({
 		acount_id,
@@ -372,6 +359,56 @@ class HashgraphClient extends HashgraphClientContract {
 		console.log("The transaction consensus status " + transactionStatus.toString());
 
 		if (transactionStatus.toString() === "SUCCESS") {
+			return {
+				acount_id,
+				token_id,
+			}
+		}
+		else {
+			return false;
+		}
+	}
+
+	enableUserAccountToken = async ({
+		encrypted_receiver_key,
+		acount_id,
+		token_id
+	}) => {
+		const client = this.#client
+
+		const privateKey = await Encryption.decrypt(encrypted_receiver_key)
+		//Sign with the freeze key of the token
+
+		// -계정에 토큰 연관성 설정
+		const transaction = await new TokenAssociateTransaction()
+			.setAccountId(acount_id)
+			.setTokenIds([token_id])
+			.freezeWith(client);
+
+		//Sign with the private key of the account that is being associated to a token 
+		const signTx = await transaction.sign(PrivateKey.fromString(privateKey));
+		const response = signTx.execute(client);
+
+		//KYC 부여
+		const revokeKyctransaction = await new TokenGrantKycTransaction()
+			.setAccountId(acount_id)
+			.setTokenId(token_id)
+			.freezeWith(client);
+			
+			
+		//Sign with the kyc private key of the token
+		const signrevokeKycTx = await revokeKyctransaction.sign(PrivateKey.fromString(Config.privateKey));
+			
+		//Submit the transaction to a Hedera network    
+		const txKycResponse = await signrevokeKycTx.execute(client);
+			
+		//Request the receipt of the transaction
+		const receiptKyc = await txKycResponse.getReceipt(client);
+			
+			
+		console.log("The transaction consensus status " + receiptKyc.status.toString());
+			
+		if (receiptKyc.status.toString() === "SUCCESS") {
 			return {
 				acount_id,
 				token_id,
@@ -425,7 +462,7 @@ class HashgraphClient extends HashgraphClientContract {
 			.setInitialSupply(supplyWithDecimals)
 			.setTreasuryAccountId(Config.accountId)
 			.setAdminKey(operatorPrivateKey)
-			//.setKycKey(operatorPrivateKey)
+			.setKycKey(operatorPrivateKey)
 			.setFreezeKey(operatorPrivateKey)
 			.setWipeKey(operatorPrivateKey)
 			.setSupplyKey(operatorPrivateKey)
@@ -442,24 +479,6 @@ class HashgraphClient extends HashgraphClientContract {
 
 		const txResponse = await signTx.execute(client)
 		const receipt = await txResponse.getReceipt(client)
-
-
-		const revokeKyctransaction = await new TokenRevokeKycTransaction()
-			.setAccountId(Config.accountId)
-			.setTokenId(receipt.tokenId.toString())
-			.freezeWith(client);
-
-		//Sign with the kyc private key of the token
-		const signrevokeKycTx = await revokeKyctransaction.sign(operatorPrivateKey);
-
-		//Submit the transaction to a Hedera network    
-		const txKycResponse = await signrevokeKycTx.execute(client);
-
-		//Request the receipt of the transaction
-		const receiptKyc = await txKycResponse.getReceipt(client);
-
-
-		console.log("The transaction consensus status " + receiptKyc.status.toString());
 
 		return {
 			name,
