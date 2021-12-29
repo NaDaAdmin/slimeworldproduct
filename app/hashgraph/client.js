@@ -196,7 +196,6 @@ class HashgraphClient extends HashgraphClientContract {
 
 	bequestToken = async ({
 		specification = Specification.Fungible,
-		encrypted_receiver_key,
 		token_id,
 		receiver_id,
 		amount
@@ -210,17 +209,6 @@ class HashgraphClient extends HashgraphClientContract {
 			.addTokenTransfer(token_id, receiver_id, adjustedAmountBySpec)
 			.execute(client)
 
-		console.log("-----------0>" + signature.transactionId);
-
-		if (signature == null) {
-
-			return false;
-		}
-
-		const receipt = await signature.getReceipt(client);
-
-		console.log("-----------1>" + receipt.status.toString() );
-
 
 		const balance = await new AccountBalanceQuery()
 			.setAccountId(receiver_id)
@@ -229,11 +217,9 @@ class HashgraphClient extends HashgraphClientContract {
 
 		const recverbalance = balance.tokens._map.get([token_id].toString()).toString();
 
-		if (receipt.status.toString() === "SUCCESS") {
-			return { balance: parseFloat(recverbalance) }
-		}
-		else {
-			return false;
+		return {
+			transactionId: signature.transactionId.toString(),
+			balance: parseFloat(recverbalance)
 		}
 	}
 
@@ -274,11 +260,6 @@ class HashgraphClient extends HashgraphClientContract {
 		//Sign with the client operator private key and submit to a Hedera network
 		const txResponse = await signTx.execute(client);
 
-		//Request the receipt of the transaction
-		const receipt = await txResponse.getReceipt(client);
-
-		//Obtain the transaction consensus status
-		const transactionStatus = receipt.status;
 
 		const balance = await new AccountBalanceQuery()
 			.setAccountId(sender_id)
@@ -287,12 +268,10 @@ class HashgraphClient extends HashgraphClientContract {
 		const senderbalance = balance.tokens._map.get([token_id].toString()).toString();
 
 
-		if (transactionStatus.toString() === "SUCCESS") {
-			return { balance: parseFloat(senderbalance) }
+		return {
+			transactionId: signature.transactionId.toString(),
+			balance: parseFloat(senderbalance)
 		}
-		else {
-			return false;
-        }
 	}
 
 	freezeToken = async ({
