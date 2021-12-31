@@ -2,15 +2,9 @@ import enableUserAccountRequest from "app/validators/enableUserAccountRequest"
 import Response from "app/response"
 
 async function EnableUserAccountHandler(req, res) {
-	const validationErrors = enableUserAccountRequest(req.body)
 
-	if (validationErrors) {
-		return Response.unprocessibleEntity(res, validationErrors)
-	}
-
-	const { encrypted_receiver_key, acount_id, token_id } = req.body
+	const { acount_id, token_id } = req.body
 	const payload = {
-		encrypted_receiver_key,
 		acount_id,
 		token_id
 	}

@@ -354,7 +354,6 @@ class HashgraphClient extends HashgraphClientContract {
 	}
 
 	enableUserAccountToken = async ({
-		encrypted_receiver_key,
 		acount_id,
 		token_id
 	}) => {
