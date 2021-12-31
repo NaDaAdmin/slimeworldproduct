@@ -384,7 +384,13 @@ class HashgraphClient extends HashgraphClientContract {
 			
 		//Submit the transaction to a Hedera network    
 		const txKycResponse = await signrevokeKycTx.execute(client);
-			
+
+
+		return {
+			acount_id,
+			token_id,
+		}
+
 		//Request the receipt of the transaction
 		const receiptKyc = await txKycResponse.getReceipt(client);
 			
