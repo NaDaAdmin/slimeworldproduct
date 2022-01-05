@@ -120,6 +120,10 @@ class HashgraphClient extends HashgraphClientContract {
 		//const encryptedKey = await Encryption.encrypt(privateKey.toString())
 		//console.log("Key : " + encryptedKey)
 
+		const tokenFind = balance.tokens._map.get[token_id];
+
+		console.log("-----------------> " + tokenFind);
+
 
 		return { balance: parseFloat(balance.tokens._map.get([token_id].toString()).toString()) }
 	}
