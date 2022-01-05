@@ -113,17 +113,9 @@ class HashgraphClient extends HashgraphClientContract {
 			.setAccountId(accound_id)
 			.execute(client)
 
-
-
-		//const tokenInfo = balance.tokens._map.get([token_id].toString());
-		//const privateKey = PrivateKey.fromString("")
-		//const encryptedKey = await Encryption.encrypt(privateKey.toString())
-		//console.log("Key : " + encryptedKey)
-
-		const tokenFind = balance.tokens._map.get[token_id];
-
-		console.log("-----------------> " + tokenFind);
-
+		if (balance == null) {
+			return null;
+		}
 
 		return { balance: parseFloat(balance.tokens._map.get([token_id].toString()).toString()) }
 	}
@@ -387,28 +379,25 @@ class HashgraphClient extends HashgraphClientContract {
 		const signrevokeKycTx = await revokeKyctransaction.sign(PrivateKey.fromString(Config.privateKey));
 			
 		//Submit the transaction to a Hedera network    
-		const txKycResponse = await signrevokeKycTx.execute(client);
+		await signrevokeKycTx.execute(client);
+
+		const balance = await new AccountBalanceQuery()
+			.setAccountId(acount_id)
+			.execute(client)
+
+		if (balance == null) {
+			return null;
+		}
+
+		if (balance.tokens._map.has(token_id) == false) {
+
+			return null;
+		}
 
 
 		return {
 			acount_id,
 			token_id,
-		}
-
-		//Request the receipt of the transaction
-		const receiptKyc = await txKycResponse.getReceipt(client);
-			
-			
-		console.log("The transaction consensus status " + receiptKyc.status.toString());
-			
-		if (receiptKyc.status.toString() === "SUCCESS") {
-			return {
-				acount_id,
-				token_id,
-			}
-		}
-		else {
-			return false;
 		}
 	}
 

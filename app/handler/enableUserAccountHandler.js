@@ -17,7 +17,7 @@ async function EnableUserAccountHandler(req, res) {
 	}
 
 	// This has to be bolstered up with correct error handling
-	return Response.badRequest(res)
+	return Response.associateeror(res)
 }
 
 export default EnableUserAccountHandler
