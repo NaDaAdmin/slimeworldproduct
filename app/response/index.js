@@ -21,6 +21,11 @@ function badRequest(res) {
 	return res.status(Status.BAD_REQUEST).send({})
 }
 
+
+function associateeror(res) {
+	return res.status(Status.TOKEN_ASSOCIATEERROR).send({})
+}
+
 function json(res, data) {
 	res.json({ data })
 }
@@ -30,5 +35,6 @@ export default {
 	unauthorised,
 	unprocessibleEntity,
 	badRequest,
+	associateeror,
 	json
 }
