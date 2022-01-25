@@ -291,22 +291,23 @@ class HashgraphClient extends HashgraphClientContract {
 		const txResponse = await signTx.execute(client);
 
 		//Request the receipt of the transaction
-		const receipt = await txResponse.getReceipt(client);
+		//const receipt = await txResponse.getReceipt(client);
 
 		//Get the transaction consensus status
-		const transactionStatus = receipt.status;
+		//const transactionStatus = receipt.status;
 
-		console.log("The transaction consensus status " + transactionStatus.toString());
+		//console.log("The transaction consensus status " + transactionStatus.toString());
 
-		if (transactionStatus.toString() === "SUCCESS") {
-			return {
-				acount_id,
-				token_id,
-			}
+		return {
+			acount_id,
+			token_id,
 		}
-		else {
-			return false;
-		}
+
+		//if (transactionStatus.toString() === "SUCCESS") {
+		//}
+		//else {
+		//	return false;
+		//}
 	}
 
 
@@ -331,21 +332,16 @@ class HashgraphClient extends HashgraphClientContract {
 		const txResponse = await signTx.execute(client);
 
 		//Request the receipt of the transaction
-		const receipt = await txResponse.getReceipt(client);
+		//const receipt = await txResponse.getReceipt(client);
 
 		//Get the transaction consensus status
-		const transactionStatus = receipt.status;
+		//const transactionStatus = receipt.status;
 
-		console.log("The transaction consensus status " + transactionStatus.toString());
+		//console.log("The transaction consensus status " + transactionStatus.toString());
 
-		if (transactionStatus.toString() === "SUCCESS") {
-			return {
-				acount_id,
-				token_id,
-			}
-		}
-		else {
-			return false;
+		return {
+			acount_id,
+			token_id,
 		}
 	}
 
