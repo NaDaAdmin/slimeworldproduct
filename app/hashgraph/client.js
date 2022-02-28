@@ -203,19 +203,20 @@ class HashgraphClient extends HashgraphClientContract {
 		const signature = await new TransferTransaction()
 			.addTokenTransfer(token_id, Config.accountId, -adjustedAmountBySpec)
 			.addTokenTransfer(token_id, receiver_id, adjustedAmountBySpec)
+			//.memo()
 			.execute(client)
 
 
-		const balance = await new AccountBalanceQuery()
-			.setAccountId(receiver_id)
-			.execute(client)
+		// const balance = await new AccountBalanceQuery()
+		// 	.setAccountId(receiver_id)
+		// 	.execute(client)
 
 
-		const recverbalance = balance.tokens._map.get([token_id].toString()).toString();
+		// const recverbalance = balance.tokens._map.get([token_id].toString()).toString();
 
 		return {
 			transactionId: signature.transactionId.toString(),
-			balance: parseFloat(recverbalance)
+			balance: parseFloat(0)
 		}
 	}
 
@@ -265,7 +266,7 @@ class HashgraphClient extends HashgraphClientContract {
 
 
 		return {
-			transactionId: signature.transactionId.toString(),
+			transactionId: transaction.transactionId.toString(),
 			balance: parseFloat(senderbalance)
 		}
 	}
@@ -291,23 +292,22 @@ class HashgraphClient extends HashgraphClientContract {
 		const txResponse = await signTx.execute(client);
 
 		//Request the receipt of the transaction
-		//const receipt = await txResponse.getReceipt(client);
+		const receipt = await txResponse.getReceipt(client);
 
 		//Get the transaction consensus status
-		//const transactionStatus = receipt.status;
+		const transactionStatus = receipt.status;
 
-		//console.log("The transaction consensus status " + transactionStatus.toString());
+		console.log("The transaction consensus status " + transactionStatus.toString());
 
-		return {
-			acount_id,
-			token_id,
+		if (transactionStatus.toString() === "SUCCESS") {
+			return {
+				acount_id,
+				token_id,
+			}
 		}
-
-		//if (transactionStatus.toString() === "SUCCESS") {
-		//}
-		//else {
-		//	return false;
-		//}
+		else {
+			return false;
+		}
 	}
 
 
@@ -332,38 +332,45 @@ class HashgraphClient extends HashgraphClientContract {
 		const txResponse = await signTx.execute(client);
 
 		//Request the receipt of the transaction
-		//const receipt = await txResponse.getReceipt(client);
+		const receipt = await txResponse.getReceipt(client);
 
 		//Get the transaction consensus status
-		//const transactionStatus = receipt.status;
+		const transactionStatus = receipt.status;
 
-		//console.log("The transaction consensus status " + transactionStatus.toString());
+		console.log("The transaction consensus status " + transactionStatus.toString());
 
-		return {
-			acount_id,
-			token_id,
+		if (transactionStatus.toString() === "SUCCESS") {
+			return {
+				acount_id,
+				token_id,
+			}
+		}
+		else {
+			return false;
 		}
 	}
 
 	enableUserAccountToken = async ({
 		acount_id,
-		token_id
+		token_id,
+		//encrypted_receiver_key
 	}) => {
 		const client = this.#client
 
-		//const privateKey = await Encryption.decrypt(encrypted_receiver_key)
-		////Sign with the freeze key of the token
-		//
-		//// -������ ��ū ������ ����
-		//const transaction = await new TokenAssociateTransaction()
-		//	.setAccountId(acount_id)
-		//	.setTokenIds([token_id])
-		//	.freezeWith(client);
-		//
-		////Sign with the private key of the account that is being associated to a token 
-		//const signTx = await transaction.sign(PrivateKey.fromString(privateKey));
-		//const response = signTx.execute(client);
-		//
+		// ** 계정 활성화 **
+		// const privateKey = await Encryption.decrypt(encrypted_receiver_key)
+		// //Sign with the freeze key of the token
+		
+		// const transaction = await new TokenAssociateTransaction()
+		// 	.setAccountId(acount_id)
+		// 	.setTokenIds([token_id])
+		// 	.freezeWith(client);
+		
+		// //Sign with the private key of the account that is being associated to a token 
+		// const signTx = await transaction.sign(PrivateKey.fromString(privateKey));
+		// const response = signTx.execute(client);
+		// ** 계정 활성화 종료 **
+		
 		//KYC �ο�
 		const revokeKyctransaction = await new TokenGrantKycTransaction()
 			.setAccountId(acount_id)
@@ -666,7 +673,7 @@ class HashgraphClient extends HashgraphClientContract {
 		}
 	}
 
-
+	
 	stakingToken = async ({
 		specification = Specification.Fungible,
 		token_id,
@@ -718,18 +725,18 @@ class HashgraphClient extends HashgraphClientContract {
 
 		if (transactionStatus.toString() === "SUCCESS")
 		{
-			const balance = await new AccountBalanceQuery()
-				.setAccountId(sender_id)
-				.execute(client);
+			// const balance = await new AccountBalanceQuery()
+			// 	.setAccountId(sender_id)
+			// 	.execute(client);
 	
-			const senderbalance = balance.tokens._map.get([token_id].toString()).toString();
+			//const senderbalance = balance.tokens._map.get([token_id].toString()).toString();
 
 			return {
 				transactionId: transaction.transactionId.toString(),
-				balance: parseFloat(senderbalance)
+				balance: parseFloat(0)
 			}
 		}
-		else
+		elsez
 		{
 			return false;
 		}
