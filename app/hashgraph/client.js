@@ -742,6 +742,33 @@ class HashgraphClient extends HashgraphClientContract {
 		}
 	}
 
+	updateToken = async ({
+		token_id,
+		token_simbol
+	}) => {
+	    const client = this.#client
+
+	    const transaction = await new TokenUpdateTransaction()
+     		.setTokenId(token_id)
+     		.setTokenSymbol(token_simbol)
+     		.freezeWith(client);
+
+		const operatorPrivateKey = PrivateKey.fromString(Config.privateKey)
+
+		//Sign the transaction with the admin key
+		const signTx = await transaction.sign(operatorPrivateKey);
+
+		//Submit the signed transaction to a Hedera network
+		const txResponse = await signTx.execute(client);
+
+		//Request the receipt of the transaction
+		const receipt = await txResponse.getReceipt(client);
+
+		//Get the transaction consensus status
+		const transactionStatus = receipt.status.toString();
+
+		console.log("The transaction consensus status is " + transactionStatus);
+	}
 }
 
 export default HashgraphClient
