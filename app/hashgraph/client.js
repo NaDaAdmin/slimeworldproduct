@@ -51,7 +51,7 @@ class HashgraphClient extends HashgraphClientContract {
 	 **/
 	async createNewTopic({ memo, enable_private_submit_key }) {
 		const client = this.#client
-		const transactionResponse = {}
+		const transactionResponse = {} 
 		const operatorPrivateKey = PrivateKey.fromString(Config.privateKey)
 		const transaction = new TopicCreateTransaction()
 
