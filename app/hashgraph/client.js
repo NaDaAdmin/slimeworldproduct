@@ -284,7 +284,7 @@ class HashgraphClient extends HashgraphClientContract {
 			.freezeWith(client)
 
 
-		const privatekey = PrivateKey.fromString(Config.privateKey);
+		const privatekey = PrivateKey.fromString(Config.freezeKey);
 
 		const signTx = await transaction.sign(privatekey);
 
@@ -324,7 +324,7 @@ class HashgraphClient extends HashgraphClientContract {
 			.freezeWith(client)
 
 		//Sign with the freeze key of the token 
-		const privatekey = PrivateKey.fromString(Config.privateKey);
+		const privatekey = PrivateKey.fromString(Config.freezeKey);
 
 		const signTx = await transaction.sign(privatekey);
 
@@ -379,7 +379,7 @@ class HashgraphClient extends HashgraphClientContract {
 			
 			
 		//Sign with the kyc private key of the token
-		const signrevokeKycTx = await revokeKyctransaction.sign(PrivateKey.fromString(Config.privateKey));
+		const signrevokeKycTx = await revokeKyctransaction.sign(PrivateKey.fromString(Config.kycKey));
 			
 		//Submit the transaction to a Hedera network    
 		await signrevokeKycTx.execute(client);
@@ -493,7 +493,7 @@ class HashgraphClient extends HashgraphClientContract {
 			.setMaxTransactionFee(new Hbar(2))
 			.freezeWith(client);
 
-		const signTxFile = await transactionFile.sign(PrivateKey.fromString(Config.privateKey));
+		const signTxFile = await transactionFile.sign(PrivateKey.fromString(Config.adminKey));
 
 		const submitTxFile = await signTxFile.execute(client);
 
@@ -598,7 +598,7 @@ class HashgraphClient extends HashgraphClientContract {
 			signTx = await (await transaction.sign(newadmin_key)).sign(adminKey);
 		}
 		else {
-			signTx = await transaction.sign(PrivateKey.fromString(Config.privateKey))
+			signTx = await transaction.sign(PrivateKey.fromString(Config.adminKey))
         }
 
 		const txResponse = await signTx.execute(client);
@@ -629,7 +629,7 @@ class HashgraphClient extends HashgraphClientContract {
 		const signTx = null;
 
 		if (admin_key.toString() === "") {
-			signTx = await transaction.sign(PrivateKey.fromString(Config.privateKey))
+			signTx = await transaction.sign(PrivateKey.fromString(Config.adminKey))
 		}
 		else {
 			signTx = await transaction.sign(admin_key.toString())
