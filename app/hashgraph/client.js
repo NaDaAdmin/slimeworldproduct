@@ -391,9 +391,6 @@ class HashgraphClient extends HashgraphClientContract {
 		const transactionStatus = receipt.status;
 		console.log("The transaction consensus status " + transactionStatus.toString());
 
-		//Submit the transaction to a Hedera network    
-		await signrevokeKycTx.execute(client);
-
 		const balance = await new AccountBalanceQuery()
 			.setAccountId(acount_id)
 			.execute(client)
