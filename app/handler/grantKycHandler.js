@@ -1,7 +1,7 @@
 import grantKycRequest from "app/validators/grantKycRequest"
 import Response from "app/response"
 
-async function grantKycHandler(req, res) {
+async function GrantKycHandler(req, res) {
 
 	const { acount_id, token_id, encrypted_receiver_key } = req.body
 	const payload = {
@@ -20,4 +20,4 @@ async function grantKycHandler(req, res) {
 	return Response.associateeror(res)
 }
 
-export default grantKycHandler
+export default GrantKycHandler
