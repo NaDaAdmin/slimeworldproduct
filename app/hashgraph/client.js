@@ -378,28 +378,28 @@ class HashgraphClient extends HashgraphClientContract {
 			.freezeWith(client);
 			
 			
+		const balance = await new AccountBalanceQuery()
+		.setAccountId(acount_id)
+		.execute(client)
+
+		if (balance == null) {
+			return false;
+		}
+
+		if (balance.tokens._map.has(token_id) == false) {
+
+			return false;
+		}
+
 		//Sign with the kyc private key of the token
 		const signrevokeKycTx = await revokeKyctransaction.sign(PrivateKey.fromString(Config.kycKey));
 			
 		//Submit the transaction to a Hedera network    
-		const txResponse = await signrevokeKycTx.execute(client);
+		await signrevokeKycTx.execute(client);
 
-		//Request the receipt of the transaction
-		const receipt = await txResponse.getReceipt(client);
-
-		//Get the transaction consensus status
-		const transactionStatus = receipt.status;
-		console.log("The transaction consensus status " + transactionStatus.toString());
-
-		if (transactionStatus.toString() === "SUCCESS") {
-			return {
-				transactionStatus,
-				acount_id,
-				token_id,
-			}
-		}
-		else {
-			return null;
+		return {
+			acount_id,
+			token_id,
 		}
 	}
 
