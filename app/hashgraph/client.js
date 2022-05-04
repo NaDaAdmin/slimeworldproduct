@@ -350,6 +350,75 @@ class HashgraphClient extends HashgraphClientContract {
 		}
 	}
 
+	grantKyc = async ({
+		acount_id,
+		token_id,
+		//encrypted_receiver_key
+	}) => {
+		const client = this.#client
+
+		// ** 계정 활성화 **
+		// const privateKey = await Encryption.decrypt(encrypted_receiver_key)
+		// //Sign with the freeze key of the token
+		
+		// const transaction = await new TokenAssociateTransaction()
+		// 	.setAccountId(acount_id)
+		// 	.setTokenIds([token_id])
+		// 	.freezeWith(client);
+		
+		// //Sign with the private key of the account that is being associated to a token 
+		// const signTx = await transaction.sign(PrivateKey.fromString(privateKey));
+		// const response = signTx.execute(client);
+		// ** 계정 활성화 종료 **
+		
+		//KYC �ο�
+		const revokeKyctransaction = await new TokenGrantKycTransaction()
+			.setAccountId(acount_id)
+			.setTokenId(token_id)
+			.freezeWith(client);
+			
+			
+		//Sign with the kyc private key of the token
+		const signrevokeKycTx = await revokeKyctransaction.sign(PrivateKey.fromString(Config.kycKey));
+			
+		//Submit the transaction to a Hedera network    
+		const txResponse = await signTx.execute(client);
+
+		//Request the receipt of the transaction
+		const receipt = await txResponse.getReceipt(client);
+
+		//Get the transaction consensus status
+		const transactionStatus = receipt.status;
+		console.log("The transaction consensus status " + transactionStatus.toString());
+
+		//Submit the transaction to a Hedera network    
+		await signrevokeKycTx.execute(client);
+
+		const balance = await new AccountBalanceQuery()
+			.setAccountId(acount_id)
+			.execute(client)
+
+		if (balance == null) {
+			return null;
+		}
+
+		if (balance.tokens._map.has(token_id) == false) {
+
+			return null;
+		}
+
+		if (transactionStatus.toString() === "SUCCESS") {
+			return {
+				transactionStatus,
+				acount_id,
+				token_id,
+			}
+		}
+		else {
+			return null;
+		}
+	}
+
 	enableUserAccountToken = async ({
 		acount_id,
 		token_id,
