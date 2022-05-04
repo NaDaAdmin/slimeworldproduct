@@ -391,19 +391,6 @@ class HashgraphClient extends HashgraphClientContract {
 		const transactionStatus = receipt.status;
 		console.log("The transaction consensus status " + transactionStatus.toString());
 
-		const balance = await new AccountBalanceQuery()
-			.setAccountId(acount_id)
-			.execute(client)
-
-		if (balance == null) {
-			return null;
-		}
-
-		if (balance.tokens._map.has(token_id) == false) {
-
-			return null;
-		}
-
 		if (transactionStatus.toString() === "SUCCESS") {
 			return {
 				transactionStatus,
