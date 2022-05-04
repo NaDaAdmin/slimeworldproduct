@@ -10,7 +10,7 @@ async function grantKycHandler(req, res) {
 	}
 
 	const { hashgraphClient } = req.context
-	const response = await hashgraphClient.grantKycToken(payload)
+	const response = await hashgraphClient.grantKyc(payload)
 
 	if (response) {
 		return Response.json(res, response)
