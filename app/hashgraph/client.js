@@ -43,6 +43,8 @@ import Encryption from "app/utils/encryption"
 import Explorer from "app/utils/explorer"
 import sendWebhookMessage from "app/utils/sendWebhookMessage"
 import Specification from "app/hashgraph/tokens/specifications"
+import {IpfsAPI} from "ipfs-api"
+//import { KeyList } from "@hashgraph/sdk/lib/exports"
 
 
 class HashgraphClient extends HashgraphClientContract {
@@ -64,7 +66,7 @@ class HashgraphClient extends HashgraphClientContract {
 		const operatorPrivateKey = PrivateKey.fromString(Config.privateKey)
 		const transaction = new TopicCreateTransaction()
 
-		transaction.setAdminKey(operatorPrivateKey.publicKey)
+		transaction.setAdminKey(operatorPrivateKey.adminKey)
 
 		if (memo) {
 			transactionResponse.memo = memo
@@ -72,7 +74,7 @@ class HashgraphClient extends HashgraphClientContract {
 		}
 
 		if (enable_private_submit_key) {
-			transaction.setSubmitKey(operatorPrivateKey.publicKey)
+			transaction.setSubmitKey(operatorPrivateKey.adminKey)
 		}
 
 		const transactionId = await transaction.execute(client)
@@ -807,7 +809,7 @@ class HashgraphClient extends HashgraphClientContract {
 			.setMaxTransactionFee(new Hbar(2))
 			.freezeWith(client);
 
-		const signTxFile = await transactionFile.sign(PrivateKey.fromString(Config.adminKey));
+		const signTxFile = await transactionFile.sign(PrivateKey.fromString(Config.privateKey));
 
 		const submitTxFile = await signTxFile.execute(client);
 
@@ -943,7 +945,7 @@ class HashgraphClient extends HashgraphClientContract {
 		const signTx = null;
 
 		if (admin_key.toString() === "") {
-			signTx = await transaction.sign(PrivateKey.fromString(Config.adminKey))
+			signTx = await transaction.sign(PrivateKey.fromString(Config.privateKey))
 		}
 		else {
 			signTx = await transaction.sign(admin_key.toString())
@@ -1058,19 +1060,27 @@ class HashgraphClient extends HashgraphClientContract {
 
 	updateToken = async ({
 		token_id,
-		token_simbol
 	}) => {
 	    const client = this.#client
 
+		// kyc 리스트
+		const kycKeys = [Config.privateKey, Config.kycKey];
+		const thresholdKey =  new KeyList(kycKeys, 1);
+
 	    const transaction = await new TokenUpdateTransaction()
      		.setTokenId(token_id)
-     		.setTokenSymbol(token_simbol)
-     		.freezeWith(client);
+			//.setAdminKey(Config.adminKey)
+			//  .setKycKey(thresholdKey)
+			//  .setSupplyKey(Config.supplyKey)
+			//  .setFreezeKey(Config.freezeKey)
+			//  .setWipeKey(Config.wipeKey)
+     		 .freezeWith(client);
 
-		const operatorPrivateKey = PrivateKey.fromString(Config.privateKey)
+		const operatorPrivateKey = PrivateKey.fromString(Config.privateKey);
+		//const operatorAdminKey = PrivateKey.fromString(Config.adminKey);
 
 		//Sign the transaction with the admin key
-		const signTx = await transaction.sign(operatorPrivateKey);
+		const signTx = await transaction.sign(operatorPrivateKey)// .sign(operatorAdminKey);
 
 		//Submit the signed transaction to a Hedera network
 		const txResponse = await signTx.execute(client);
@@ -1090,6 +1100,10 @@ class HashgraphClient extends HashgraphClientContract {
 		token_id,
 	}) => {
 		const client = this.#client
+
+		console.log("privateKey : " + privateKey);
+		console.log("account_id : " + account_id);
+		console.log("token_id : " + token_id);
 
 		const balance = await new AccountBalanceQuery()
 			.setAccountId(account_id)
