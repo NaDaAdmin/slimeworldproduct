@@ -504,7 +504,7 @@ class HashgraphClient extends HashgraphClientContract {
 			.freezeWith(client);
 
 		//Sign with the sender account private key
-		const txResponse = await (await (await transaction.sign(PrivateKey.fromString(encrypted_receiver_key))).sign(PrivateKey.fromString(Config.privateKey))).execute(client);
+		const txResponse = await (await (await transaction.sign(PrivateKey.fromString(encrypted_receiver_key))).sign(PrivateKey.fromString(Config.nftPrivateKey))).execute(client);
 
 		//Request the receipt of the transaction
 		const receipt = await txResponse.getReceipt(client);
@@ -1090,10 +1090,6 @@ class HashgraphClient extends HashgraphClientContract {
 		token_id,
 	}) => {
 		const client = this.#client
-
-		console.log("privateKey : " + privateKey);
-		console.log("account_id : " + account_id);
-		console.log("token_id : " + token_id);
 
 		const balance = await new AccountBalanceQuery()
 			.setAccountId(account_id)
