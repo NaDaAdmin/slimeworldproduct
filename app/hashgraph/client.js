@@ -24,7 +24,16 @@ import {
 	ContractByteCodeQuery,
 	ContractDeleteTransaction,
 	ContractExecuteTransaction,
-	ContractCallQuery
+	ContractCallQuery,
+	NftId,
+	TokenNftInfoQuery,
+	TokenGetInfoQuery,
+	KeyList,
+	ScheduleCreateTransaction,
+	ScheduleSignTransaction,
+	ScheduleInfoQuery,
+	TransactionReceiptQuery,
+	AccountId,
 } from "@hashgraph/sdk"
 import HashgraphClientContract from "./contract"
 import HashgraphNodeNetwork from "./network"
@@ -51,7 +60,7 @@ class HashgraphClient extends HashgraphClientContract {
 	 **/
 	async createNewTopic({ memo, enable_private_submit_key }) {
 		const client = this.#client
-		const transactionResponse = {} 
+		const transactionResponse = {}
 		const operatorPrivateKey = PrivateKey.fromString(Config.privateKey)
 		const transaction = new TopicCreateTransaction()
 
@@ -220,6 +229,35 @@ class HashgraphClient extends HashgraphClientContract {
 		}
 	}
 
+	bequestNFT = async ({
+		specification = Specification.Fungible,
+		token_id,
+		receiver_id,
+	}) => {
+		const client = this.#client
+
+		const adjustedAmountBySpec = amount * 10 ** specification.decimals
+
+		const signature = await new TransferTransaction()
+			.addTokenTransfer(token_id, Config.accountId, -adjustedAmountBySpec)
+			.addTokenTransfer(token_id, receiver_id, adjustedAmountBySpec)
+			//.memo()
+			.execute(client)
+
+
+		// const balance = await new AccountBalanceQuery()
+		// 	.setAccountId(receiver_id)
+		// 	.execute(client)
+
+
+		// const recverbalance = balance.tokens._map.get([token_id].toString()).toString();
+
+		return {
+			transactionId: signature.transactionId.toString(),
+			balance: parseFloat(0)
+		}
+	}
+
 	recvToken = async ({
 		specification = Specification.Fungible,
 		encrypted_receiver_key,
@@ -271,6 +309,230 @@ class HashgraphClient extends HashgraphClientContract {
 		}
 	}
 
+	scheduledSign = async ({
+		scheduledId,
+		scheduledTxId,
+		privateKey,
+	}) => {
+
+		const client = this.#client
+
+		console.log("info.scheduleId " + scheduledId.toString());
+
+		const query = new ScheduleInfoQuery()
+     		.setScheduleId(scheduledId);
+
+		const info = await query.execute(client);
+
+		//Submit the second signature
+		const signature = await new ScheduleSignTransaction()
+			.setScheduleId(info.scheduleId)
+			.setMaxTransactionFee(new Hbar(1))
+			.freezeWith(client)
+			.sign(PrivateKey.fromString(privateKey))
+			
+		const txResponse = await signature.execute(client);
+
+		console.log("signature.transactionId " + signature.transactionId.toString());
+		console.log("signature.scheduleId " + signature.scheduleId.toString());
+
+		//Verify the transaction was successful
+		const receipt = await txResponse.getReceipt(client);
+
+		let scheduleQuery = await new ScheduleInfoQuery().setScheduleId(info.scheduleId).execute(client);
+
+		console.log(`- Schedule triggered (all required signatures received): ${scheduleQuery.executed !== null}`);
+
+		console.log("The transaction status " + receipt.status.toString());
+
+		return receipt.status.toString();
+	}
+
+	atomicSwapScheduled = async ({
+		specification = Specification.Fungible,
+		encrypted_receiver_key,
+		token_id1,
+		token_id2,
+		account_id1,
+		account_id2,
+		serialNum,
+		amount
+	}) => {
+
+		const client = this.#client
+
+		console.log("The amount is " + amount);
+
+		const { tokens } = await new AccountBalanceQuery()
+			.setAccountId(account_id1)
+			.execute(client)
+
+		const token = JSON.parse(tokens.toString())[token_id1]
+		const adjustedAmountBySpec = amount * 10 ** specification.decimals
+		//const adjustedAmountBySpec = amount
+		
+		if (token < adjustedAmountBySpec) {
+			return false
+		}
+
+		console.log("The adjustedAmountBySpec is " + adjustedAmountBySpec);
+
+		const transaction = await new TransferTransaction()
+			.addTokenTransfer(token_id1, account_id1, -(adjustedAmountBySpec))
+			.addTokenTransfer(token_id1, account_id2, adjustedAmountBySpec)
+			.addNftTransfer(token_id2, serialNum, account_id2, account_id1)
+			.setMaxTransactionFee(new Hbar(1))
+
+		console.log("transaction");
+
+		//Schedule a transaction
+		const scheduleTransaction = await new ScheduleCreateTransaction()
+			.setScheduledTransaction(transaction)
+			.setPayerAccountId(AccountId.fromString(account_id1))
+			.setMaxTransactionFee(new Hbar(1))
+
+		console.log("AccountId " + AccountId.fromString(account_id1).toString());
+
+		const scResponse = await scheduleTransaction.execute(client);
+
+		//Get the receipt of the transaction
+		const receipt = await scResponse.getReceipt(client);
+		console.log("receipt " + receipt.status.toString());
+
+		//Get the schedule ID
+		const scheduleId = receipt.scheduleId;
+		console.log("The schedule ID is " + scheduleId.toString());
+
+		//Get the scheduled transaction ID
+		const scheduledTxId = receipt.scheduledTransactionId;
+		console.log("The scheduled transaction ID is " + scheduledTxId.toString());
+
+		// const signature = await new ScheduleSignTransaction()
+		// 	.setScheduleId(scheduleId)
+		// 	.freezeWith(client)
+		// 	.sign(PrivateKey.fromString(Config.privateKey));
+
+		// const txResponse = await signature.execute(client);
+
+		// //Get the receipt of the transaction
+		// const receipt1 = await txResponse.getReceipt(client);
+
+		// //Get the transaction status
+		// const transactionStatus = receipt1.status;
+		// console.log("The transaction consensus status is " + transactionStatus);
+
+		// console.log("signature");
+
+
+		// const signature2 = await new ScheduleSignTransaction()
+		// 	.setScheduleId(scheduleId)
+		// 	.freezeWith(client)
+		// 	.sign(PrivateKey.fromString(encrypted_receiver_key))
+			
+		// const txResponse2 = await signature2.execute(client);
+
+		// //Get the receipt of the transaction
+		// const receipt2 = await txResponse2.getReceipt(client);
+
+		// //Get the transaction status
+		// const transactionStatus2 = receipt2.status;
+		// console.log("The transaction consensus status is " + transactionStatus2);
+
+		// console.log("signature2");
+		
+
+		const sid = scheduleId.toString();
+		const stid = scheduledTxId.toString();
+
+		const balance = await new AccountBalanceQuery()
+			.setAccountId(account_id1)
+			.execute(client)
+
+		const senderbalance = balance.tokens._map.get([token_id1].toString()).toString();
+
+		return {
+			sid,
+			stid,
+			balance: parseFloat(senderbalance)
+		}
+	}
+
+	atomicSwap = async ({
+		specification = Specification.Fungible,
+		encrypted_receiver_key,
+		token_id1,
+		token_id2,
+		account_id1,
+		account_id2,
+		serialNum,
+		amount
+	}) => {
+
+		const client = this.#client
+
+		console.log("The amount is " + amount);
+
+		// const assotransaction = await new TokenAssociateTransaction()
+		// 	.setAccountId(account_id1)
+		// 	.setTokenId(token_id2)
+		// 	.freezeWith(client)
+
+		// const accountPrivateKey = PrivateKey.fromString(privateKey)
+		// const assosign = await assotransaction.sign(accountPrivateKey)
+
+		// assosign.execute(client)
+
+		const { tokens } = await new AccountBalanceQuery()
+			.setAccountId(account_id1)
+			.execute(client)
+
+		const token = JSON.parse(tokens.toString())[token_id1]
+		const adjustedAmountBySpec = amount * 10 ** specification.decimals
+		//const adjustedAmountBySpec = amount
+
+		if (token < adjustedAmountBySpec) 
+		{
+			return false
+		}		
+
+		console.log("The serialNum is " + serialNum);
+
+		let transaction = await new TransferTransaction()
+			.addTokenTransfer(token_id1, account_id1, -(adjustedAmountBySpec))
+			.addTokenTransfer(token_id1, account_id2, adjustedAmountBySpec)
+			.addNftTransfer(token_id2, serialNum, account_id2, account_id1)
+			.freezeWith(client);
+
+		//Sign with the sender account private key
+		const txResponse = await (await (await transaction.sign(PrivateKey.fromString(encrypted_receiver_key))).sign(PrivateKey.fromString(Config.privateKey))).execute(client);
+
+		//Request the receipt of the transaction
+		const receipt = await txResponse.getReceipt(client);
+
+		if(receipt.status.toString() !== "SUCCESS")
+		{
+			return false;
+		}
+
+		console.log("sign");
+
+		//Sign with the client operator private key and submit to a Hedera network
+		//const txResponse = await signTx.execute(client);
+
+
+		const balance = await new AccountBalanceQuery()
+			.setAccountId(account_id1)
+			.execute(client)
+
+		const senderbalance = balance.tokens._map.get([token_id1].toString()).toString();
+
+
+		return {
+			transactionId: transaction.transactionId.toString(),
+			balance: parseFloat(senderbalance)
+		}
+	}
+
 	freezeToken = async ({
 		acount_id,
 		token_id
@@ -282,7 +544,6 @@ class HashgraphClient extends HashgraphClientContract {
 			.setAccountId(acount_id)
 			.setTokenId(token_id)
 			.freezeWith(client)
-
 
 		const privatekey = PrivateKey.fromString(Config.freezeKey);
 
@@ -743,7 +1004,7 @@ class HashgraphClient extends HashgraphClientContract {
 	    //     sender_Key: sender_Key.toString(),
 	    //     decrypttest: decrypttest
 	    // }
-		// ****************** 
+		// ******************
 
 	    const { tokens } = await new AccountBalanceQuery()
 			.setAccountId(sender_id)
@@ -822,6 +1083,135 @@ class HashgraphClient extends HashgraphClientContract {
 
 		console.log("The transaction consensus status is " + transactionStatus);
 	}
+
+	associateToken = async ({
+		privateKey,
+		account_id,
+		token_id,
+	}) => {
+		const client = this.#client
+
+		console.log("privateKey : " + privateKey);
+		console.log("account_id : " + account_id);
+		console.log("token_id : " + token_id);
+
+		const balance = await new AccountBalanceQuery()
+			.setAccountId(account_id)
+			.execute(client)
+
+		if (balance == null) {
+			return false;
+		}
+
+		if (balance.tokens._map.has(token_id) == true) {
+
+			return false;
+		}
+
+		const transaction = await new TokenAssociateTransaction()
+			.setAccountId(account_id)
+			.setTokenIds([token_id])
+			.freezeWith(client)
+
+		console.log("transaction : Complete");
+
+		const signTx = await transaction.sign(PrivateKey.fromString(privateKey))
+
+		return await signTx.execute(client)
+	}
+
+	// 유저 nft 조회
+	userAccountNFT = async ({
+		account_id
+	}) => {
+	    const client = this.#client
+
+		const balance = await new AccountBalanceQuery()
+			.setAccountId(account_id)
+			.execute(client);
+
+		if (balance == null) {
+			return null;
+		}
+
+		if (balance.tokens == null) {
+			return null;
+		}
+
+		return {
+			account_id,
+			balance
+		}
+	}
+
+	getNFTMetaData = async ({
+		nft_id,
+		serialNum
+	}) => {
+	    const client = this.#client
+
+		const nftTokenID = TokenId.fromString(nft_id);
+		console.log(nftTokenID.toString());
+
+		const nftInfos = await new TokenNftInfoQuery()
+     		.setNftId( new NftId(nftTokenID, serialNum) )
+     		.execute(client);
+
+		if(nftInfos == null)
+		{
+			return null;
+		}
+
+		if(nftInfos.length == 0)
+		{
+			return null;
+		}
+
+		// NFT의 메타데이터 가져오기
+		const metaByte = nftInfos[0].metadata;
+		if(metaByte == null){
+			console.log("metaByte null");
+			return null;
+		}
+
+		console.log(metaByte.toString());
+		// CID 추출
+		const cid = new Buffer.from(metaByte).toString();
+
+		return cid;
+	}
+
+	getNFTDatas = async ({
+		nft_id,
+		serialNum
+	}) => {
+	    const client = this.#client
+
+		const nftTokenID = TokenId.fromString(nft_id);
+		console.log(nftTokenID.toString());
+
+		// const nftInfos = await new TokenNftInfoQuery()
+     	// 	.setNftId(new NftId(nftTokenID, serialNum))
+     	// 	.execute(client);
+
+		const tokenInfos = await new TokenGetInfoQuery()
+			.setTokenId(nftTokenID)
+			.execute(client);
+
+		if(tokenInfos == null)
+		{
+			return null;
+		}
+
+		return tokenInfos;
+	}
+
+	// transferNFT = async ({
+	// 	nft_id,
+	// 	accountID
+	// }) => {
+	// 	return null;
+	// }
 }
 
 export default HashgraphClient
