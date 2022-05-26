@@ -501,6 +501,8 @@ class HashgraphClient extends HashgraphClientContract {
 			.addNftTransfer(token_id2, serialNum, account_id2, account_id1)
 			.freezeWith(client);
 
+		console.log("transaction complete!!");
+		
 		//Sign with the sender account private key
 		const txResponse = await (await (await transaction.sign(PrivateKey.fromString(encrypted_receiver_key))).sign(PrivateKey.fromString(Config.nftPrivateKey))).execute(client);
 
