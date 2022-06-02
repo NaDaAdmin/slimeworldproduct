@@ -474,16 +474,6 @@ class HashgraphClient extends HashgraphClientContract {
 
 		console.log("The amount is " + amount);
 
-		// const assotransaction = await new TokenAssociateTransaction()
-		// 	.setAccountId(account_id1)
-		// 	.setTokenId(token_id2)
-		// 	.freezeWith(client)
-
-		// const accountPrivateKey = PrivateKey.fromString(privateKey)
-		// const assosign = await assotransaction.sign(accountPrivateKey)
-
-		// assosign.execute(client)
-
 		const { tokens } = await new AccountBalanceQuery()
 			.setAccountId(account_id1)
 			.execute(client)
