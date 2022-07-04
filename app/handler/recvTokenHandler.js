@@ -3,13 +3,6 @@ import Response from "app/response"
 
 async function RecvTokenHandler(req, res) {
 
-	const validationErrors = recvTokenRequest(req.body)
-
-	if (validationErrors) {
-		return Response.unprocessibleEntity(res, validationErrors)
-	}
-
-
 	const { encrypted_receiver_key, token_id, sender_id, amount } = req.body
 	const recvPayload = {
 		encrypted_receiver_key,

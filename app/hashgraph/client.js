@@ -267,11 +267,7 @@ class HashgraphClient extends HashgraphClientContract {
 		sender_id,
 		amount
 	}) => {
-
 		const client = this.#client
-
-		// Extract PV from encrypted
-		const privateKey = await Encryption.decrypt(encrypted_receiver_key)
 
 		const { tokens } = await new AccountBalanceQuery()
 			.setAccountId(sender_id)
@@ -285,25 +281,31 @@ class HashgraphClient extends HashgraphClientContract {
 			return false
 		}
 
-		let transaction = await new TransferTransaction()
+		const transaction = await new TransferTransaction()
 			.addTokenTransfer(token_id, sender_id, -(adjustedAmountBySpec))
 			.addTokenTransfer(token_id, Config.accountId, adjustedAmountBySpec)
 			.freezeWith(client);
 
 
 		//Sign with the sender account private key
-		const signTx = await transaction.sign(PrivateKey.fromString(privateKey));
+		const signTx = await transaction.sign(PrivateKey.fromString(encrypted_receiver_key));
 
 		//Sign with the client operator private key and submit to a Hedera network
 		const txResponse = await signTx.execute(client);
 
+		const receipt = await txResponse.getReceipt(client)
+
+		console.log(receipt.status.toString());
+		
+		if (receipt.status.toString() !== "SUCCESS") {
+			return false;
+		}
 
 		const balance = await new AccountBalanceQuery()
 			.setAccountId(sender_id)
 			.execute(client)
 
 		const senderbalance = balance.tokens._map.get([token_id].toString()).toString();
-
 
 		return {
 			transactionId: transaction.transactionId.toString(),
@@ -390,7 +392,7 @@ class HashgraphClient extends HashgraphClientContract {
 		//Schedule a transaction
 		const scheduleTransaction = await new ScheduleCreateTransaction()
 			.setScheduledTransaction(transaction)
-			.setPayerAccountId(AccountId.fromString(account_id1))
+			.setPayerAccountId(AccountId.fromString(account_id2))
 			.setMaxTransactionFee(new Hbar(1))
 
 		console.log("AccountId " + AccountId.fromString(account_id1).toString());
@@ -406,23 +408,12 @@ class HashgraphClient extends HashgraphClientContract {
 		console.log("The schedule ID is " + scheduleId.toString());
 
 		//Get the scheduled transaction ID
-		const scheduledTxId = receipt.scheduledTransactionId;
-		console.log("The scheduled transaction ID is " + scheduledTxId.toString());
-
-		const sid = scheduleId.toString();
-		const stid = scheduledTxId.toString();
-
-		const balance = await new AccountBalanceQuery()
-			.setAccountId(account_id1)
-			.execute(client)
-
-		const senderbalance = balance.tokens._map.get([token_id1].toString()).toString();
+		// const scheduledTxId = receipt.scheduledTransactionId;
+		// console.log("The scheduled transaction ID is " + scheduledTxId.toString());
 
 		return {
-			scheduleId : sid,
-			scheduleTxId : stid,
-			balance: parseFloat(senderbalance)
-		}
+			scheduleId : scheduleId.toString()
+		};
 	}
 
 	atomicSwap = async ({
