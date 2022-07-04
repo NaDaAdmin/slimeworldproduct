@@ -1131,6 +1131,8 @@ class HashgraphClient extends HashgraphClientContract {
 		// CID 추출
 		const cid = new Buffer.from(metaByte).toString();
 
+		const url = "https://ipfs.io/ipfs/" + cid;
+
 		return cid;
 	}
 
