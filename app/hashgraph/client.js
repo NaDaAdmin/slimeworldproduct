@@ -352,7 +352,6 @@ class HashgraphClient extends HashgraphClientContract {
 
 	atomicSwapScheduled = async ({
 		specification = Specification.Fungible,
-		encrypted_receiver_key,
 		token_id1,
 		token_id2,
 		account_id1,
@@ -362,8 +361,6 @@ class HashgraphClient extends HashgraphClientContract {
 	}) => {
 
 		const client = this.#client
-
-		console.log("The amount is " + amount);
 
 		const { tokens } = await new AccountBalanceQuery()
 			.setAccountId(account_id1)
@@ -377,15 +374,11 @@ class HashgraphClient extends HashgraphClientContract {
 			return false
 		}
 
-		console.log("The adjustedAmountBySpec is " + adjustedAmountBySpec);
-
 		const transaction = await new TransferTransaction()
 			.addTokenTransfer(token_id1, account_id1, -(adjustedAmountBySpec))
 			.addTokenTransfer(token_id1, account_id2, adjustedAmountBySpec)
 			.addNftTransfer(token_id2, serialNum, account_id2, account_id1)
 			.setMaxTransactionFee(new Hbar(1))
-
-		console.log("transaction");
 
 		//Schedule a transaction
 		const scheduleTransaction = await new ScheduleCreateTransaction()
@@ -393,17 +386,13 @@ class HashgraphClient extends HashgraphClientContract {
 			.setPayerAccountId(AccountId.fromString(account_id2))
 			.setMaxTransactionFee(new Hbar(1))
 
-		console.log("AccountId " + AccountId.fromString(account_id1).toString());
-
 		const scResponse = await scheduleTransaction.execute(client);
 
 		//Get the receipt of the transaction
 		const receipt = await scResponse.getReceipt(client);
-		console.log("receipt " + receipt.status.toString());
 
 		//Get the schedule ID
 		const scheduleId = receipt.scheduleId;
-		console.log("The schedule ID is " + scheduleId.toString());
 
 		//Get the scheduled transaction ID
 		// const scheduledTxId = receipt.scheduledTransactionId;
@@ -411,7 +400,7 @@ class HashgraphClient extends HashgraphClientContract {
 
 		return {
 			scheduleId : scheduleId.toString()
-		};
+		}
 	}
 
 	atomicSwap = async ({
