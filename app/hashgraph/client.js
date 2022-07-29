@@ -360,16 +360,9 @@ class HashgraphClient extends HashgraphClientContract {
 		if (receipt.status.toString() !== "SUCCESS") {
 			return false;
 		}
-
-		let balance = await new AccountBalanceQuery()
-			.setAccountId(sender_id)
-			.execute(client)
-
-		const senderbalance = balance.tokens._map.get([token_id].toString()).toString();
-
+		
 		return {
-			transactionId: transaction.transactionId.toString(),
-			balance: parseFloat(senderbalance)
+			transactionId: transaction.transactionId.toString()			
 		}
 	}
 
