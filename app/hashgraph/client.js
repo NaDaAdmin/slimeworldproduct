@@ -34,6 +34,7 @@ import {
 	ScheduleInfoQuery,
 	TransactionReceiptQuery,
 	AccountId,
+	TokenBurnTransaction,
 } from "@hashgraph/sdk"
 import HashgraphClientContract from "./contract"
 import HashgraphNodeNetwork from "./network"
@@ -44,6 +45,7 @@ import Explorer from "app/utils/explorer"
 import sendWebhookMessage from "app/utils/sendWebhookMessage"
 import Specification from "app/hashgraph/tokens/specifications"
 import {IpfsAPI} from "ipfs-api"
+import config from "app/config"
 //import { KeyList } from "@hashgraph/sdk/lib/exports"
 
 
@@ -231,6 +233,66 @@ class HashgraphClient extends HashgraphClientContract {
 		}
 	}
 
+	// 테스트 지급, 회수 기능으로 만듬
+	receiveNFT = async ({
+		specification = Specification.Fungible,
+		privateKey,
+		token_id,
+		account_id,
+		account_id2,
+		serialNum,
+	}) => {
+		const client = this.#client
+
+		const transaction = await new TransferTransaction()
+			.addNftTransfer(token_id, serialNum, account_id, account_id2)
+			.setMaxTransactionFee(new Hbar(1))
+			.freezeWith(client)
+			.sign(PrivateKey.fromString(privateKey));
+
+		//Sign with the client operator private key and submit to a Hedera network
+		const txResponse = await transaction.execute(client);
+
+		//Request the receipt of the transaction
+		const receipt = await txResponse.getReceipt(client)
+
+		if(receipt.status.toString() !== "SUCCESS")
+		{
+			return false;
+		}
+
+		return true;
+	}
+
+	// NFT 지급 기능 - 일단 worldnft 지급 기능으로 만듬
+	sendNFT = async ({
+		specification = Specification.Fungible,
+		token_id,
+		account_id,
+		serialNum,
+	}) => {
+		const client = this.#client
+
+		const transaction = await new TransferTransaction()
+			.addNftTransfer(token_id, serialNum, Config.worldNftAccountId, account_id)
+			.setMaxTransactionFee(new Hbar(1))
+			.freezeWith(client)
+			.sign(PrivateKey.fromString(Config.worldNftPrivateKey));
+
+		//Sign with the client operator private key and submit to a Hedera network
+		const txResponse = await transaction.execute(client);
+
+		//Request the receipt of the transaction
+		const receipt = await txResponse.getReceipt(client)
+
+		if(receipt.status.toString() !== "SUCCESS")
+		{
+			return false;
+		}
+
+		return true;
+	}
+
 	bequestNFT = async ({
 		specification = Specification.Fungible,
 		token_id,
@@ -378,7 +440,7 @@ class HashgraphClient extends HashgraphClientContract {
 			.addTokenTransfer(token_id1, account_id1, -(adjustedAmountBySpec))
 			.addTokenTransfer(token_id1, account_id2, adjustedAmountBySpec)
 			.addNftTransfer(token_id2, serialNum, account_id2, account_id1)
-			.setMaxTransactionFee(new Hbar(1))
+			.setMaxTransactionFee(new Hbar(1)) // Fee Error Prevention
 
 		//Schedule a transaction
 		const scheduleTransaction = await new ScheduleCreateTransaction()
@@ -1060,6 +1122,57 @@ class HashgraphClient extends HashgraphClientContract {
 		return await signTx.execute(client)
 	}
 
+	burnNFTToken = async ({
+		privateKey,
+		account_id,
+		token_id,
+	}) => {
+		const client = this.#client
+
+		// BURN THE LAST NFT IN THE COLLECTION
+		let tokenBurnTx = await new TokenBurnTransaction()
+			.setTokenId(token_id)
+			.setSerials([CID.length])
+			.freezeWith(client)
+			.sign(Config.supplyKey);
+
+		let tokenBurnSubmit = await tokenBurnTx.execute(client);
+		let tokenBurnRx = await tokenBurnSubmit.getReceipt(client);
+
+		console.log(`Burn NFT with serial ${CID.length}: ${tokenBurnRx.status.toString()}`);
+		
+		return await tokenBurnRx.status;
+
+	}
+
+	// 회사 계정 토큰 소각
+	burnToken = async ({
+		privateKey,
+		account_id,
+		token_id,
+		amount
+	}) => {
+		const client = this.#client
+
+		//Burn 1,000 tokens
+		const transaction = new TokenBurnTransaction()
+			.setTokenId(token_id)
+			.setAmount(amount)
+
+		//Build the unsigned transaction, sign with the supply private key of the token, submit the transaction to a Hedera network
+		const transactionId = await transaction.build(client).sign(Config.supplyKey).execute(client);
+			
+		//Request the receipt of the transaction
+		const getReceipt = await transactionId.getReceipt(client);
+			
+		//Obtain the transaction consensus status
+		const transactionStatus = getReceipt.status;
+
+		console.log("The transaction consensus status is " + transactionStatus);
+
+		return await transactionStatus
+	}
+
 	// 유저 nft 조회
 	userAccountNFT = async ({
 		account_id
@@ -1136,16 +1249,19 @@ class HashgraphClient extends HashgraphClientContract {
      	// 	.setNftId(new NftId(nftTokenID, serialNum))
      	// 	.execute(client);
 
-		const tokenInfos = await new TokenGetInfoQuery()
-			.setTokenId(nftTokenID)
-			.execute(client);
+		const tokenInfo = new TokenGetInfoQuery()
+			.setTokenId(nftTokenID);
 
-		if(tokenInfos == null)
+		const totalSupply = await tokenInfo.execute(client).totalSupply;
+
+		console.log("The total supply of this token is " +totalSupply)
+
+		if(tokenInfo == null)
 		{
 			return null;
 		}
 
-		return tokenInfos;
+		return tokenInfo;
 	}
 
 	// transferNFT = async ({

@@ -10,9 +10,8 @@ async function AtomicSwapScheduledHandler(req, res) {
 	// }
 
 
-	const { encrypted_receiver_key, token_id1, token_id2, account_id1, account_id2, serialNum, amount } = req.body
-	const atomicPayload = {
-		encrypted_receiver_key,
+	const { token_id1, token_id2, account_id1, account_id2, serialNum, amount } = req.body
+	const atomicPayload = {		
 		token_id1,
         token_id2,
 		account_id1,
